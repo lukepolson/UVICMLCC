@@ -1,15 +1,11 @@
-This is the repository for the **UVIC Machine Learning Competition Club**. Stored here is all scripts and models used. All data should be stored locally; it is included in the .gitignore. The layout of the repositories are as follows
+This is the repository for the **UVIC Machine Learning Competition Club**. Stored here is all scripts and models used. All data should be stored locally; it is included in the .gitignore. The layout of the repositories are as follows. See below for description of each folder.
 
-![](/Misc/README_Images/repo_pic.pdf)
+![](https://github.com/lukepolson/UVICMLCC/blob/master/Misc/README_Images/repo_pic.jpg)
 
-<figure>
-  <img src="/Misc/README_Images/repo_pic.pdf" alt="my alt text"/>
-  <figcaption> Figure 1: File Structure. </figcaption>
-</figure>
 
 # Competitions
 
-This is the code for all competitions. Each competitions is stored in it's each folder.
+This is the code for all competitions. Each competition has it's each folder (see diagram).
 
 ## Data
 
