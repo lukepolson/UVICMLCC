@@ -17,7 +17,7 @@ Stored here are
 1. Frames
 * Frames contain some examples of snake paths for the given models that were trained. They use the policy that was developed during training
 2. Policies
-* These are the final policies determined after training is completed. Policies essentially take in a state `s' of the board and predict which action `a' to perform such that the future reward is maximized. These can be loaded and used to make predictions.
+* These are the final policies determined after training is completed. Policies essentially `take in a state s of the board and predict which action a to perform such that the future reward is maximized`. These can be loaded and used to make predictions.
 3. Stats
 * These are DataFrames which contain information such as average episode length and average reward throughout the training period. These DataFrames should be examined to see which models are the best.
 
