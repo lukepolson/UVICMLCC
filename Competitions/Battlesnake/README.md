@@ -4,6 +4,8 @@ This contains all the code for training the classic arcade game snake through re
 
 This repository is organized into four seperate folders: Analysis, DATA, Snake_Emulator, and Training_Hyperparameters.
 
+For an example of training, go to Analysis/initial_testing.py.ipynb
+
 ## Analysis
 
 This folder contains notebook files that analyze training data obtained for different hyperparameter combinations. This training data can be obtained from the Stats files in the DATA folder.
