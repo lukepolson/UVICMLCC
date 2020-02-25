@@ -97,7 +97,7 @@ class SnakeEnv(py_environment.PyEnvironment):
         # Maybe store other snakes healths in an array?
 
         # Set if snake ate during previous turn
-        self.just_eaten = False
+        self.just_eaten = False          
     
     def __init__(self, FOOD_REWARD, STEP_REWARD, BOARD_SIZE, MAX_HEALTH):
         
@@ -111,8 +111,7 @@ class SnakeEnv(py_environment.PyEnvironment):
         self._observation_spec = array_spec.BoundedArraySpec(
             shape=(BOARD_SIZE,BOARD_SIZE, 3), dtype=np.int32, minimum=-1, name='observation')
         self.reset_board()
-        
-        
+   
     def action_spec(self):
         return self._action_spec
     
@@ -125,16 +124,15 @@ class SnakeEnv(py_environment.PyEnvironment):
     def _reset(self):
         self.reset_board()
         return ts.restart(np.array(self._state, dtype=np.int32))
-            
-        
+                  
     def foodspawn_assist(self):
         coords = np.argwhere(np.all(np.array(self._state) == [0, 0, 0], axis=-1))
         coord = random.choice(coords)
         self._state[coord[0]][coord[1]] = [0, 0, 1]
         return None
 
-    def _step(self, action):
-        
+    def _step(self, action, data=None):
+    
         reward = 0
         
         if self._episode_ended:
