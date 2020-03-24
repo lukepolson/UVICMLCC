@@ -13,18 +13,12 @@ import sys
 
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras.models import Sequential
 import numpy as np
 from numpy.random import exponential
 import random
 import pandas as pd
 
-# To get smooth ani|mations
-import matplotlib.pyplot as plt
-plt.rcParams['animation.ffmpeg_path'] = '\\Users\\lukep\\ffmpeg\\ffmpeg-20200206-343ccfc-win64-static\\bin\\'
-import matplotlib.animation as animation
-import matplotlib as mpl
-import ffmpeg
-mpl.rc('animation', html='jshtml')
 
 
 from tf_agents.environments import py_environment
@@ -54,8 +48,8 @@ import logging
 
 from collections import deque
 
-from Snake_v4 import Snake
-from Snake_v4 import SnakeEnv
+from Snake_v5 import Snake
+from Snake_v5 import SnakeEnv
 
 class ShowProgress:
     def __init__(self, total):
@@ -74,7 +68,7 @@ class ShowProgress:
 # sys.argv is given in bash: this line updates all local
 # variables with the values from the specified row in the
 # DataFrame
-params_df = pd.read_pickle('..\\Training_Hyperparameters\\train_params.pkl')
+params_df = pd.read_pickle('../Training_Hyperparameters/train_params.pkl')
 print(sys.argv[1])
 II = int(sys.argv[1])
 locals().update(dict(params_df.iloc[II]))
@@ -84,24 +78,35 @@ locals().update(dict(params_df.iloc[II]))
 ## ------------------------------------------------------------------------------
             
 tf.random.set_seed(888)
-env = SnakeEnv(FOOD_REWARD=food_reward, STEP_REWARD=step_reward, HEALTH_CUTOFF = health_cutoff,
-               DEATH_REWARD=death_reward, FOOD_SPAWN_MODE=food_spawn_mode, KILL_STEP_REWARD = kill_step_reward,
-               FOOD_REWARD_MODE = food_reward_mode, BOARD_SIZE=8, MAX_HEALTH=100)
+env = SnakeEnv(BOARD_SIZE=int(board_size),
+               MAX_HEALTH=100,
+               INIT_FOOD_REWARD=food_reward,
+               STEP_REWARD=step_reward,
+               DEATH_REWARD=death_reward,
+               KILL_STEP_REWARD = kill_step_reward,
+               FOOD_SPAWN_MODE=food_spawn_mode,
+               HEALTH_CUTOFF = health_cutoff,
+               COUNTER_MODE=counter_mode,
+               MAX_COUNTER=int(max_counter))
 tf_env = tf_py_environment.TFPyEnvironment(env)
 
 ## ------------------------------------------------------------------------------
 ## ------------------------------------------------------------------------------
 ## ------------------------------------------------------------------------------
 
-preprocessing_layer = keras.layers.Lambda(
-                          lambda obs: obs.items())
+# Preprocessing layers
+board_preprocessing = Sequential([
+    keras.layers.Lambda(lambda obs: tf.cast(obs, np.float32)),
+    keras.layers.Flatten()
+])
+health_preprocessing =  keras.layers.Flatten()
 
 # Layers params are specified by local variables ovtained from DataFrame
 q_net = QNetwork(
     tf_env.observation_spec(),
     tf_env.action_spec(),
-    preprocessing_layers=preprocessing_layer,
-    preprocessing_combiner = tf.keras.layers.Add(),
+    preprocessing_layers=(board_preprocessing, health_preprocessing),
+    preprocessing_combiner = tf.keras.layers.Concatenate(axis=-1),
     conv_layer_params=conv_layer_params,
     fc_layer_params=fc_layer_params,
     batch_squash=False)
@@ -145,7 +150,7 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     # The number of trajectories added at each step
     batch_size=tf_env.batch_size,
     # This can store 4 million trajectories (note: requires a lot of RAM)
-    max_length=4000000)
+    max_length=n_iterations)
 
 # Create the observer that adds trajectories to the replay buffer
 replay_buffer_observer = replay_buffer.add_batch
@@ -199,6 +204,8 @@ dataset = replay_buffer.as_dataset(
 
 if __name__ == "__main__":
     
+    
+
     # a) For storing data
     training_info = [[], [], [], []]
     def add_metrics(arr, train_metrics):
@@ -214,20 +221,31 @@ if __name__ == "__main__":
         policy_state = agent.collect_policy.get_initial_state(tf_env.batch_size)
         # Create iterator over dataset and loop
         iterator = iter(dataset)
+        
         for iteration in range(n_iterations):
             # Pass current time step and policy state to get next time step and policy state
             time_step, policy_state = collect_driver.run(time_step, policy_state)
             # Sample a batch of trajectories from the dataset, pass to the train method
             trajectories, buffer_info = next(iterator)
             train_loss = agent.train(trajectories)
-            print("\r{} loss:{:.5f}".format(
-                iteration, train_loss.loss.numpy()), end="")
+            
             if iteration % 10000 == 0:
+                # This adds training data
                 add_metrics(training_info, train_metrics)
+                f = open("../DATA/Single/progress_{}.txt".format(II), "w")
+                f.write("Current iteration: {} \n".format(iteration))
+                f.close()
+            if iteration == food_reward_cutoff:
+                # Turns off food reward after so many iterations
+                collect_driver.env.pyenv.envs[0].food_reward_off()
+
+            
+            
+                
     train_agent(n_iterations=n_iterations)
     
     # c) For storing frames
-    def get_vid_frames(policy, filename, num_episodes=20, fps=2):
+    def get_vid_frames(policy, filename, num_episodes=100, fps=2):
         frames = []
         for _ in range(num_episodes):
             time_step = tf_env.reset()
@@ -240,16 +258,14 @@ if __name__ == "__main__":
 
     # Store Data
     df = pd.DataFrame(np.array(training_info).T, columns=['N_Ep', 'Env_Steps', 'Avf_RM', 'Avg_EPLM'])
-    df.to_csv('../DATA/stats_{}.txt'.format(II), index=False, mode="a")
+    df.to_csv('../DATA/Single/stats_{}.txt'.format(II), index=False, mode="a")
     
     # Store Frames
     frames = get_vid_frames(agent.policy, "trained-agent")
-    with open('../DATA/frames_{}.pkl'.format(II), 'wb') as f:
+    with open('../DATA/Single/frames_{}.pkl'.format(II), 'wb') as f:
         pickle.dump(frames, f)
         
     # Store Model
     my_policy = agent.policy
     saver = PolicySaver(my_policy, batch_size=None)
-    saver.save('..\\DATA\\policy_{}'.format(II))
-    
-    
+    saver.save('../DATA/Single/policy_{}'.format(II))
